@@ -8,7 +8,9 @@ if [ -z "$CSL_ANSIBLE_DIR" ]; then
   return 1
 fi
 
-PASSCARD_DIR="${KEYBASE_PASSCARD_DIR}/passwords"
+PASSCARD_DIR="${KEYBASE_PASSCARD_DIR%/}/passwords"
+CSL_ANSIBLE_DIR="${CSL_ANSIBLE_DIR%/}"
+
 TEMP_RUNNER_FILE="${TEMP_RUNNER_FILE:-$HOME/.ansible-playbook-runner.sh}"
 
 raw-passcard() {
@@ -87,7 +89,7 @@ tjans() {
 
     if [[ "$PLAY" == "" ]]
     then
-        echo "usage: tjans (playbook) [options]..."
+        echo "Usage: tjans (playbook) [options]..."
         return
     fi
 
@@ -102,7 +104,7 @@ tjans() {
     do
         case $1 in
             -h | --help)
-                echo "usage: tjans (playbook) [options]..."
+                echo "Usage: tjans (playbook) [options]..."
                 echo Run a tjCSL ansible play intelligently
                 echo
                 echo "  -p, --pass PASS                 Specify the name of the passcard file to use when connecting"
