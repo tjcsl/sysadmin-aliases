@@ -11,7 +11,7 @@ You must have the following installed:
 
 Additionally, the following environment variables must be set:
 - `KEYBASE_PASSCARD_DIR` must be set to the location of the git clone of `keybase-passcard`.
-- `ANSIBLE_DIR` must be set to the location of the git clone of `ansible`
+- `CSL_ANSIBLE_DIR` must be set to the location of the git clone of `ansible`
 
 To use some aliases, you may also need to have a bash function called `copy`
 to copy something to clipboard from stdin for your system (e.g. `wl-copy`
