@@ -11,7 +11,7 @@ fi
 PASSCARD_DIR="${KEYBASE_PASSCARD_DIR%/}/passwords"
 CSL_ANSIBLE_DIR="${CSL_ANSIBLE_DIR%/}"
 
-TEMP_RUNNER_FILE="${TEMP_RUNNER_FILE:-$HOME/.ansible-playbook-runner.sh}"
+TEMP_RUNNER_FILE_DIR="${TEMP_RUNNER_FILE_DIR:-$HOME}"
 
 raw-passcard() {
   if [ $# -ne 1 ]; then
@@ -87,6 +87,9 @@ tjans() {
     SSH_PASS_NAME=""
     VAULT_PASS_NAME="ansible"
 
+    CONN_FILE=$(printf "${TEMP_RUNNER_FILE_DIR%/}/.ansible-playbook-runner-%s.sh" "conn")
+    VAULT_FILE=$(printf "${TEMP_RUNNER_FILE_DIR%/}/.ansible-playbook-runner-%s.sh" "vault")
+
     if [[ "$PLAY" == "" ]]
     then
         echo "Usage: tjans (playbook) [options]..."
@@ -148,17 +151,19 @@ tjans() {
 
     set -- "${other_args[@]}"
 
-    pp "$SSH_PASS_NAME" || true
-    sshpass="$(raw-passcard "$SSH_PASS_NAME")"
-    echo "$sshpass"
+    sshpass=$(raw-passcard "$SSH_PASS_NAME")
+    echo "#!/usr/bin/env bash" > "$CONN_FILE"
+    echo "echo $sshpass" >> "$CONN_FILE"
+    chmod +x "$CONN_FILE"
 
     vaultpass=$(raw-passcard "$VAULT_PASS_NAME"_vault)
-    echo "#!/bin/bash" > "$TEMP_RUNNER_FILE"
-    echo "echo $vaultpass" >> "$TEMP_RUNNER_FILE"
-    chmod +x "$TEMP_RUNNER_FILE"
+    echo "#!/usr/bin/env bash" > "$VAULT_FILE"
+    echo "echo $vaultpass" >> "$VAULT_FILE"
+    chmod +x "$VAULT_FILE"
 
     echo "RUNNING COMMAND:"
     echo "    " ansible-playbook "$CSL_ANSIBLE_DIR"/"$PLAY".yml -i "$CSL_ANSIBLE_DIR"/hosts -f "$NUM_FORKS" -u "$CONNECT_USER" "$@"
     git -C "$CSL_ANSIBLE_DIR" pull
-    ansible-playbook "$CSL_ANSIBLE_DIR"/"$PLAY".yml -i "$CSL_ANSIBLE_DIR"/hosts --ask-pass --vault-password-file "$TEMP_RUNNER_FILE" -f "$NUM_FORKS" -u "$CONNECT_USER" "$@"
+    ansible-playbook "$CSL_ANSIBLE_DIR"/"$PLAY".yml -i "$CSL_ANSIBLE_DIR"/hosts --connection-password-file "$CONN_FILE" \
+      --vault-password-file "$VAULT_FILE" -f "$NUM_FORKS" -u "$CONNECT_USER" "$@"
 }
