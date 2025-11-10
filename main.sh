@@ -59,6 +59,8 @@ EOF
   base="${base%.tjhsst.edu}"
   if [[ "$base" == "borg"* || "$base" == "hpc"* ]]; then
     password="$(raw-passcard cluster)"
+  elif [[ "$base" == "smith" || "$base" == "casey" ]]; then
+    password="$(raw-passcard mail)"
   else
     password="$(raw-passcard "$base")"
   fi
@@ -68,7 +70,7 @@ EOF
     return 1
   fi
   if [[ "$1" != *".tjhsst.edu" ]]; then
-    if [[ "$base" =~ ^(www|ipa) ]]; then
+    if [[ "$base" =~ ^(www|ipa|casey|smith) ]]; then
       set -- "$1.tjhsst.edu"
     else
       set -- "$1.csl.tjhsst.edu"
