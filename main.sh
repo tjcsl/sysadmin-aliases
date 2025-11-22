@@ -85,12 +85,12 @@ EOF
 tjans() {
     NUM_FORKS="100"
     CONNECT_USER="root"
-    PLAY="$1"
+    PLAY="${1%.yml}"
     SSH_PASS_NAME=""
     VAULT_PASS_NAME="ansible"
 
-    CONN_FILE=$(printf "${TEMP_RUNNER_FILE_DIR%/}/.ansible-playbook-runner-%s.sh" "conn")
-    VAULT_FILE=$(printf "${TEMP_RUNNER_FILE_DIR%/}/.ansible-playbook-runner-%s.sh" "vault")
+    CONN_FILE="${TEMP_RUNNER_FILE_DIR%/}/.ansible-playbook-runner-conn.sh"
+    VAULT_FILE="${TEMP_RUNNER_FILE_DIR%/}/.ansible-playbook-runner-vault.sh"
 
     if [[ "$PLAY" == "" ]]
     then
