@@ -153,9 +153,11 @@ tjans() {
 
     set -- "${other_args[@]}"
 
-    sshpass=$(raw-passcard "$SSH_PASS_NAME")
+    passwd=$(raw-passcard "$SSH_PASS_NAME")
+    escaped="${passwd//\'/\'}"
+    escaped="${escaped//\"/\\\"}"
     echo "#!/usr/bin/env bash" > "$CONN_FILE"
-    echo "echo $sshpass" >> "$CONN_FILE"
+    echo "echo $escaped" >> "$CONN_FILE"
     chmod +x "$CONN_FILE"
 
     vaultpass=$(raw-passcard "$VAULT_PASS_NAME"_vault)
