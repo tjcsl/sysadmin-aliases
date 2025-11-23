@@ -70,7 +70,7 @@ EOF
     return 1
   fi
   if [[ "$1" != *".tjhsst.edu" ]]; then
-    if [[ "$base" =~ ^(www|ipa|casey|smith) ]]; then
+    if [[ "$base" =~ ^(www|ipa[12]|casey|smith)$ ]]; then
       set -- "$1.tjhsst.edu"
     else
       set -- "$1.csl.tjhsst.edu"
