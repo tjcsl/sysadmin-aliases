@@ -34,7 +34,7 @@ pp() {
     echo "Error: Unable to decrypt passcard '$1'" >&2
     return 1
   fi
-  copy <<< "$passcard"
+  copy <<<"$passcard"
 }
 
 p() {
@@ -81,93 +81,92 @@ EOF
   sshpass -p "$password" ssh "root@$url" "$@"
 }
 
-
 tjans() {
-    NUM_FORKS="100"
-    CONNECT_USER="root"
-    PLAY="${1%.yml}"
-    SSH_PASS_NAME=""
-    VAULT_PASS_NAME="ansible"
+  NUM_FORKS="100"
+  CONNECT_USER="root"
+  PLAY="${1%.yml}"
+  SSH_PASS_NAME=""
+  VAULT_PASS_NAME="ansible"
 
-    CONN_FILE="${TEMP_RUNNER_FILE_DIR%/}/.ansible-playbook-runner-conn.sh"
-    VAULT_FILE="${TEMP_RUNNER_FILE_DIR%/}/.ansible-playbook-runner-vault.sh"
+  CONN_FILE="${TEMP_RUNNER_FILE_DIR%/}/.ansible-playbook-runner-conn.sh"
+  VAULT_FILE="${TEMP_RUNNER_FILE_DIR%/}/.ansible-playbook-runner-vault.sh"
 
-    if [[ "$PLAY" == "" ]]
-    then
-        echo "Usage: tjans (playbook) [options]..."
-        return
+  if [[ "$PLAY" == "" ]]; then
+    echo "Usage: tjans (playbook) [options]..."
+    echo "Pass -h or --help to see available options"
+    return
+  fi
+
+  if [[ "$PLAY" != "-h" ]] && [[ "$PLAY" != "--help" ]]; then
+    shift
+  fi
+
+  other_args=()
+  parse=1
+
+  while [[ $# -gt 0 ]]; do
+    if [ $parse -eq 0 ]; then
+      other_args+=("$1")
+      shift
+      continue
     fi
+    case $1 in
+    -h | --help)
+      echo "Usage: tjans (playbook) [options]..."
+      echo Run a tjCSL ansible play intelligently
+      echo
+      echo "  -p, --pass PASS                 Specify the name of the passcard file to use when connecting"
+      echo "  -v, --vault, --vault-pass PASS  Specify the name of the vault passcard file to use"
+      echo "  -u, --user USERNAME             Specify the username to connect with"
+      echo "  -f, --forks N                   Set the number of concurrent processes to use at once"
+      echo
+      echo "  ...any other valid ansible-playbook options are also permitted and will be passed to ansible"
+      return
+      ;;
+    -p | --pass)
+      SSH_PASS_NAME="$2"
+      shift
+      shift
+      ;;
+    -v | --vault | --vault-pass)
+      VAULT_PASS_NAME="${2%_vault}"
+      shift
+      shift
+      ;;
+    -u | --user)
+      CONNECT_USER="$2"
+      shift
+      shift
+      ;;
+    -f | --forks)
+      NUM_FORKS="$2"
+      shift
+      shift
+      ;;
+    # once we hit an unknown arg, stop parsing
+    *)
+      parse=0
+      ;;
+    esac
+  done
 
-    if [[ "$PLAY" != "-h" ]] && [[ "$PLAY" != "--help" ]]
-    then
-        shift
-    fi
+  set -- "${other_args[@]}"
 
-    other_args=()
+  passwd=$(raw-passcard "$SSH_PASS_NAME")
+  escaped="${passwd//\'/\'}"
+  escaped="${escaped//\"/\\\"}"
+  echo "#!/usr/bin/env bash" >"$CONN_FILE"
+  echo "echo $escaped" >>"$CONN_FILE"
+  chmod +x "$CONN_FILE"
 
-    while [[ $# -gt 0 ]]
-    do
-        case $1 in
-            -h | --help)
-                echo "Usage: tjans (playbook) [options]..."
-                echo Run a tjCSL ansible play intelligently
-                echo
-                echo "  -p, --pass PASS                 Specify the name of the passcard file to use when connecting"
-                echo "  -v, --vault, --vault-pass PASS  Specify the name of the vault passcard file (excluding \"_vault\") to use"
-                echo "  -u, --user USERNAME             Specify the username to connect with"
-                echo "  -f, --forks N                   Set the number of concurrent processes to use at once"
-                echo
-                echo "  ...any other valid ansible-playbook options are also permitted and will be passed to ansible"
-                return
-                ;;
-            -p | --pass)
-                SSH_PASS_NAME="$2"
-                shift
-                shift
-                ;;
-            -v | --vault | --vault-pass)
-                VAULT_PASS_NAME="$2"
-                shift
-                shift
-                ;;
-            -u | --user)
-                CONNECT_USER="$2"
-                shift
-                shift
-                ;;
-            -f | --forks)
-                NUM_FORKS="$2"
-                shift
-                shift
-                ;;
-            --* | -*)
-                other_args+=("$1")
-                shift
-                ;;
-            *)
-                other_args+=("$1")
-                shift
-                ;;
-        esac
-    done
+  vaultpass=$(raw-passcard "$VAULT_PASS_NAME"_vault)
+  echo "#!/usr/bin/env bash" >"$VAULT_FILE"
+  echo "echo $vaultpass" >>"$VAULT_FILE"
+  chmod +x "$VAULT_FILE"
 
-    set -- "${other_args[@]}"
-
-    passwd=$(raw-passcard "$SSH_PASS_NAME")
-    escaped="${passwd//\'/\'}"
-    escaped="${escaped//\"/\\\"}"
-    echo "#!/usr/bin/env bash" > "$CONN_FILE"
-    echo "echo $escaped" >> "$CONN_FILE"
-    chmod +x "$CONN_FILE"
-
-    vaultpass=$(raw-passcard "$VAULT_PASS_NAME"_vault)
-    echo "#!/usr/bin/env bash" > "$VAULT_FILE"
-    echo "echo $vaultpass" >> "$VAULT_FILE"
-    chmod +x "$VAULT_FILE"
-
-    echo "RUNNING COMMAND:"
-    echo "    " ansible-playbook "$CSL_ANSIBLE_DIR"/"$PLAY".yml -i "$CSL_ANSIBLE_DIR"/hosts -f "$NUM_FORKS" -u "$CONNECT_USER" "$@"
-    git -C "$CSL_ANSIBLE_DIR" pull
-    ansible-playbook "$CSL_ANSIBLE_DIR"/"$PLAY".yml -i "$CSL_ANSIBLE_DIR"/hosts --connection-password-file "$CONN_FILE" \
-      --vault-password-file "$VAULT_FILE" -f "$NUM_FORKS" -u "$CONNECT_USER" "$@"
+  echo "RUNNING COMMAND:"
+  echo "    " ansible-playbook "$CSL_ANSIBLE_DIR"/"$PLAY".yml -i "$CSL_ANSIBLE_DIR"/hosts -f "$NUM_FORKS" -u "$CONNECT_USER" "$@"
+  git -C "$CSL_ANSIBLE_DIR" pull
+  ansible-playbook "$CSL_ANSIBLE_DIR"/"$PLAY".yml -i "$CSL_ANSIBLE_DIR"/hosts --connection-password-file "$CONN_FILE" \
+    --vault-password-file "$VAULT_FILE" -f "$NUM_FORKS" -u "$CONNECT_USER" "$@"
 }
