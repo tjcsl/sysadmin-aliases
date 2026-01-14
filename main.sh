@@ -143,6 +143,10 @@ tjans() {
       shift
       shift
       ;;
+    -- )
+      parse=0
+      shift
+      ;;
     # once we hit an unknown arg, stop parsing
     *)
       parse=0
