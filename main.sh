@@ -88,8 +88,8 @@ tjans() {
   SSH_PASS_NAME=""
   VAULT_PASS_NAME="ansible"
 
-  CONN_FILE="${TEMP_RUNNER_FILE_DIR%/}/.ansible-playbook-runner-conn.sh"
-  VAULT_FILE="${TEMP_RUNNER_FILE_DIR%/}/.ansible-playbook-runner-vault.sh"
+  CONN_FILE="${TEMP_RUNNER_FILE_DIR%/}/.ansible-playbook-runner-conn"
+  VAULT_FILE="${TEMP_RUNNER_FILE_DIR%/}/.ansible-playbook-runner-vault"
 
   if [[ "$PLAY" == "" ]]; then
     echo "Usage: tjans (playbook) [options]..."
@@ -152,21 +152,14 @@ tjans() {
 
   set -- "${other_args[@]}"
 
-  passwd=$(raw-passcard "$SSH_PASS_NAME")
-  escaped="${passwd//\'/\'}"
-  escaped="${escaped//\"/\\\"}"
-  echo "#!/usr/bin/env bash" >"$CONN_FILE"
-  echo "echo $escaped" >>"$CONN_FILE"
-  chmod +x "$CONN_FILE"
-
-  vaultpass=$(raw-passcard "$VAULT_PASS_NAME"_vault)
-  echo "#!/usr/bin/env bash" >"$VAULT_FILE"
-  echo "echo $vaultpass" >>"$VAULT_FILE"
-  chmod +x "$VAULT_FILE"
+  raw-passcard "$SSH_PASS_NAME" > "$CONN_FILE"
+  raw-passcard "$VAULT_PASS_NAME"_vault > "$VAULT_FILE"
 
   echo "RUNNING COMMAND:"
   echo "    " ansible-playbook "$CSL_ANSIBLE_DIR"/"$PLAY".yml -i "$CSL_ANSIBLE_DIR"/hosts -f "$NUM_FORKS" -u "$CONNECT_USER" "$@"
   git -C "$CSL_ANSIBLE_DIR" pull
   ansible-playbook "$CSL_ANSIBLE_DIR"/"$PLAY".yml -i "$CSL_ANSIBLE_DIR"/hosts --connection-password-file "$CONN_FILE" \
     --vault-password-file "$VAULT_FILE" -f "$NUM_FORKS" -u "$CONNECT_USER" "$@"
+
+  rm -f "$CONN_FILE" "$VAULT_FILE"
 }
