@@ -42,8 +42,7 @@ p() {
     echo "Fuzzy search for a passcard and copy it"
     return 0
   fi
-  cd "$PASSCARD_DIR" || return 1
-  passcard="$(fd | fzf)"
+  passcard="$(fd . "$PASSCARD_DIR" | xargs basename -s ".txt.gpg" -a | fzf)"
   [ -n "$passcard" ] && pp "$passcard"
 }
 
