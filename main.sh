@@ -69,10 +69,11 @@ EOF
     return 1
   fi
   if [[ "$1" != *".tjhsst.edu" ]]; then
+    shift
     if [[ "$base" =~ ^(www|ipa[12]|casey|smith|gitlab|ras[12])$ ]]; then
-      set -- "$1.tjhsst.edu"
+      set -- "$base.tjhsst.edu" "$@"
     else
-      set -- "$1.csl.tjhsst.edu"
+      set -- "$base.csl.tjhsst.edu" "$@"
     fi
   fi
   url="$1"
