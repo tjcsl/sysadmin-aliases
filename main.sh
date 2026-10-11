@@ -22,6 +22,19 @@ raw-passcard() {
   gpg -d "$PASSCARD_DIR/$output.txt.gpg" 2>/dev/null
 }
 
+nokey() {
+  if [ $# -ne 1 ]; then
+    nokey -h
+    return 1
+  fi
+  if [[ "$1" =~ ^(-h|--help)?$ ]]; then
+    echo "Usage: nokey <ssh options>"
+    echo "ssh without using an ssh key (needed if you want a homedir and you haven't set up kerberos)"
+    return 0
+  fi
+  ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no $@
+}
+
 pp() {
   if [[ "$1" =~ ^(-h|--help)?$ ]]; then
     echo "Usage: pp <passcard-name>"
